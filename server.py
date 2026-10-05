@@ -56,7 +56,7 @@ async def lifespan(app):
         brain = Jarvis()
     stop = threading.Event()
     threading.Thread(target=reminder_loop, args=(stop,), daemon=True).start()
-    where = "in the cloud" if config.CLOUD else f"at http://localhost:{config.PORT}"
+    where = f"in the cloud, listening on port {config.PORT}" if config.CLOUD else f"at http://localhost:{config.PORT}"
     print(f"\n  {config.ASSISTANT_NAME} is online {where}\n", flush=True)
     yield
     stop.set()
