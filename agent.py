@@ -176,11 +176,21 @@ class Jarvis:
                 "client_actions": ctx.get("client_actions", [])}
 
 
+KEY_VARS = {"claude": "ANTHROPIC_API_KEY", "gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY",
+            "openrouter": "OPENROUTER_API_KEY"}
+
+
 def _friendly_error(e):
     name = type(e).__name__
     msg = str(e)
-    if "authentication" in name.lower() or "401" in msg:
-        return "My brain's API key was rejected. Please check the key in your settings (Railway Variables or .env)."
+    print(f"Brain error ({config.BRAIN}): {name}: {msg[:600]}", flush=True)  # full reason in the logs
+    var = KEY_VARS.get(config.BRAIN, "the API key")
+    if "authentication" in name.lower() or "permission" in name.lower() or "401" in msg or "API_KEY_INVALID" in msg:
+        hint = ""
+        if config.BRAIN == "gemini" and ("403" in msg or "PERMISSION_DENIED" in msg):
+            hint = " Google says this key's project can't use the Gemini API; make the key in AI Studio."
+        return (f"My {config.BRAIN} key ({var}) was rejected.{hint} Check it in your Railway Variables "
+                f"(no spaces or quotes), then try again.")
     if "credit" in msg.lower() or "billing" in msg.lower():
         return "The API account is out of credits. Please top up in the Claude Console."
     if "rate" in name.lower() or "429" in msg:
@@ -189,5 +199,4 @@ def _friendly_error(e):
         return "I'm being rate limited. Give me a moment and try again."
     if "connection" in name.lower() or "timeout" in name.lower():
         return "I can't reach my brain right now. Is the PC online?"
-    print(f"Brain error: {name}: {msg[:500]}", flush=True)
-    return f"Something went wrong on my side ({name}). Please try again."
+    return f"Something went wrong talking to my {config.BRAIN} brain ({name}). The reason is in Railway's Deploy Logs."

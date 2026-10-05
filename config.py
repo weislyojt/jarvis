@@ -13,6 +13,11 @@ if load_dotenv:
     load_dotenv(BASE_DIR / ".env")
 
 
+def _key(name):
+    """Read a key, forgiving stray spaces or quotes pasted around it."""
+    return os.getenv(name, "").strip().strip('"').strip("'").strip()
+
+
 def _bool(name, default=False):
     return os.getenv(name, str(default)).strip().lower() in ("1", "true", "yes", "on")
 
@@ -31,11 +36,11 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 #   gemini  - free tier from Google (GEMINI_API_KEY)
 #   groq    - free tier, very fast open models (GROQ_API_KEY)
 #   openrouter - many models, some free (OPENROUTER_API_KEY, set JARVIS_MODEL)
-API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
-GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "").strip()   # optional, better web search for free brains
+API_KEY = _key("ANTHROPIC_API_KEY")
+GEMINI_API_KEY = _key("GEMINI_API_KEY")
+GROQ_API_KEY = _key("GROQ_API_KEY")
+OPENROUTER_API_KEY = _key("OPENROUTER_API_KEY")
+TAVILY_API_KEY = _key("TAVILY_API_KEY")   # optional, better web search for free brains
 
 _KEYS = {"claude": API_KEY, "gemini": GEMINI_API_KEY, "groq": GROQ_API_KEY, "openrouter": OPENROUTER_API_KEY}
 BRAIN = os.getenv("JARVIS_BRAIN", "").strip().lower() or next((b for b, k in _KEYS.items() if k), "claude")

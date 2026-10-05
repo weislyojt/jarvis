@@ -128,7 +128,7 @@ class OpenAICompatBrain:
             detail = e.read()[:400].decode("utf-8", "replace")
             if e.code == 429:
                 raise RateLimitError(f"{self.label} free limit reached (429): {detail}")
-            if e.code in (401, 403):
+            if e.code in (401, 403) or (e.code == 400 and "API_KEY_INVALID" in detail):
                 raise AuthenticationError(f"{self.label} rejected the API key ({e.code}): {detail}")
             raise BrainError(f"{self.label} error {e.code}: {detail}")
         except (urllib.error.URLError, TimeoutError) as e:
@@ -189,7 +189,8 @@ class FallbackBrain:
         if self._time() >= self._primary_blocked_until:
             try:
                 return self.primary.messages.create(**kw)
-            except RateLimitError:
+            except (RateLimitError, AuthenticationError) as e:
+                print(f"Main brain unavailable, using backup: {e}", flush=True)
                 self._primary_blocked_until = self._time() + self.cooldown
         return self.backup.messages.create(**kw)
 
