@@ -26,12 +26,31 @@ CLOUD = _bool("JARVIS_CLOUD", bool(os.getenv("RAILWAY_PROJECT_ID") or os.getenv(
 DATA_DIR = Path(os.getenv("JARVIS_DATA_DIR") or os.getenv("RAILWAY_VOLUME_MOUNT_PATH") or (BASE_DIR / "data"))
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-# Brain
+# Brain. Pick one with JARVIS_BRAIN, or just add a key and Jarvis picks for you.
+#   claude  - paid, the strongest (ANTHROPIC_API_KEY)
+#   gemini  - free tier from Google (GEMINI_API_KEY)
+#   groq    - free tier, very fast open models (GROQ_API_KEY)
+#   openrouter - many models, some free (OPENROUTER_API_KEY, set JARVIS_MODEL)
 API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
-MODEL = os.getenv("JARVIS_MODEL", "claude-sonnet-5-5").strip()
-MAX_TOKENS = int(os.getenv("JARVIS_MAX_TOKENS", "1500"))
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "").strip()
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "").strip()   # optional, better web search for free brains
+
+_KEYS = {"claude": API_KEY, "gemini": GEMINI_API_KEY, "groq": GROQ_API_KEY, "openrouter": OPENROUTER_API_KEY}
+BRAIN = os.getenv("JARVIS_BRAIN", "").strip().lower() or next((b for b, k in _KEYS.items() if k), "claude")
+BACKUP_BRAIN = os.getenv("JARVIS_BACKUP_BRAIN", "").strip().lower() or next(
+    (b for b in ("gemini", "groq") if b != BRAIN and _KEYS[b] and BRAIN != "claude"), "")
+DEFAULT_MODELS = {"claude": "claude-sonnet-5-5", "gemini": "gemini-3.8-flash", "groq": "openai/gpt-oss-120b",
+                  "openrouter": ""}
+MODEL = os.getenv("JARVIS_MODEL", "").strip() or DEFAULT_MODELS.get(BRAIN, "")
+BACKUP_MODEL = os.getenv("JARVIS_BACKUP_MODEL", "").strip() or DEFAULT_MODELS.get(BACKUP_BRAIN, "")
+BRAIN_URL = os.getenv("JARVIS_BRAIN_URL", "").strip()          # advanced: any OpenAI-compatible endpoint
+BACKUP_BRAIN_URL = os.getenv("JARVIS_BACKUP_BRAIN_URL", "").strip()
+MAX_TOKENS = int(os.getenv("JARVIS_MAX_TOKENS", "1500" if BRAIN == "claude" else "4096"))
 MAX_TOOL_STEPS = int(os.getenv("JARVIS_MAX_TOOL_STEPS", "12"))
-MAX_HISTORY_MESSAGES = int(os.getenv("JARVIS_HISTORY", "30"))
+# Groq's free tier allows few tokens per minute, so it gets a shorter memory of the chat.
+MAX_HISTORY_MESSAGES = int(os.getenv("JARVIS_HISTORY", "12" if BRAIN == "groq" else "30"))
 WEB_SEARCH = _bool("JARVIS_WEB_SEARCH", True)
 WEB_SEARCH_MAX_USES = int(os.getenv("JARVIS_WEB_SEARCH_MAX_USES", "5"))
 

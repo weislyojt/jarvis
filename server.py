@@ -122,7 +122,8 @@ async def logout(request: Request):
 async def status(request: Request):
     db.set_client_timezone(request.query_params.get("tz", ""))
     return JSONResponse({"name": config.ASSISTANT_NAME, "user": config.USER_NAME, "call_me": config.CALL_ME,
-                         "model": config.MODEL, "auto_approve": config.AUTO_APPROVE, "cloud": config.CLOUD,
+                         "model": f"{config.BRAIN} ({config.MODEL})" + (f", backup {config.BACKUP_BRAIN}" if config.BACKUP_BRAIN else ""),
+                         "auto_approve": config.AUTO_APPROVE, "cloud": config.CLOUD,
                          "last_notification": db.last_notification_id(),
                          "pending": [{"id": a["id"], "summary": a["summary"]} for a in db.pending_actions()]})
 
@@ -252,9 +253,11 @@ app = Starlette(routes=routes, lifespan=lifespan)
 
 
 def main():
+    import brains
     problems = []
-    if not config.API_KEY:
-        problems.append("ANTHROPIC_API_KEY is missing")
+    missing = brains.brain_key_missing()
+    if missing:
+        problems.append(f"{missing} is missing for the '{config.BRAIN}' brain")
     if len(config.PIN) < config.MIN_PIN:
         problems.append(f"JARVIS_PIN must be at least {config.MIN_PIN} characters")
     if problems:

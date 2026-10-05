@@ -16,12 +16,23 @@ def main():
         print("Kept your existing settings.")
         return
 
-    print("1) Your Claude API key. Get one at https://console.anthropic.com (Settings > API keys).")
+    print("1) Choose Jarvis's brain:")
+    print("   1 = Gemini (FREE, from Google)   key: https://aistudio.google.com/apikey")
+    print("   2 = Groq (FREE, very fast)        key: https://console.groq.com/keys")
+    print("   3 = Claude (paid, the smartest)   key: https://console.anthropic.com")
+    brain = {"1": "gemini", "2": "groq", "3": "claude"}.get(ask("   Choose 1, 2 or 3", "1"), "gemini")
+    key_var = {"gemini": "GEMINI_API_KEY", "groq": "GROQ_API_KEY", "claude": "ANTHROPIC_API_KEY"}[brain]
     key = ""
-    while not key.startswith("sk-ant-"):
-        key = getpass.getpass("   Paste API key (hidden): ").strip()
-        if not key.startswith("sk-ant-"):
-            print("   That doesn't look like a Claude key (it should start with sk-ant-).")
+    while len(key) < 20:
+        key = getpass.getpass(f"   Paste your {brain} API key (hidden): ").strip()
+        if len(key) < 20:
+            print("   That key looks too short. Copy the whole key and try again.")
+    backup_line = ""
+    if brain != "claude":
+        other = "groq" if brain == "gemini" else "gemini"
+        b = getpass.getpass(f"   Optional backup brain ({other}) key for when the free limit runs out (Enter to skip): ").strip()
+        if b:
+            backup_line = f"{'GROQ_API_KEY' if other == 'groq' else 'GEMINI_API_KEY'}={b}\n"
 
     print("\n2) A PIN to unlock Jarvis on your devices (at least 4 characters).")
     pin = ""
@@ -36,13 +47,18 @@ def main():
     country = ask("   Country code", "PH")
     tz = ask("   Time zone", "Asia/Manila")
 
-    print("\n4) Brain: 1 = Sonnet (fast, cheaper, recommended)  2 = Opus (smartest, costs more)")
-    model = "claude-opus-5-5" if ask("   Choose 1 or 2", "1") == "2" else "claude-sonnet-5-5"
+    model = ""
+    if brain == "claude":
+        print("\n4) Claude model: 1 = Sonnet (fast, cheaper, recommended)  2 = Opus (smartest, costs more)")
+        model = "claude-opus-5-5" if ask("   Choose 1 or 2", "1") == "2" else "claude-sonnet-5-5"
 
     ENV.write_text(f"""# JARVIS settings. Keep this file private.
-ANTHROPIC_API_KEY={key}
-JARVIS_PIN={pin}
+JARVIS_BRAIN={brain}
+{key_var}={key}
+{backup_line}JARVIS_PIN={pin}
 JARVIS_MODEL={model}
+# Optional: free key from https://tavily.com for more reliable web search with free brains
+TAVILY_API_KEY=
 JARVIS_NAME={name}
 JARVIS_USER_NAME={user}
 JARVIS_CALL_ME={call_me}
@@ -63,11 +79,16 @@ JARVIS_WEB_SEARCH=true
     print(f"\nSaved settings to {ENV}. Start Jarvis with start_jarvis.bat\n")
 
     try:
-        import anthropic
-        print("Testing your API key...")
-        r = anthropic.Anthropic(api_key=key).messages.create(
-            model=model, max_tokens=30, messages=[{"role": "user", "content": "Say 'Online and ready.'"}])
-        print("   Claude says:", "".join(b.text for b in r.content if b.type == "text"))
+        import os
+        os.environ.update({"JARVIS_BRAIN": brain, key_var: key, "JARVIS_MODEL": model})
+        import importlib
+        import config
+        importlib.reload(config)
+        import brains
+        print("Testing your key...")
+        r = brains.make_brain().messages.create(model=config.MODEL, max_tokens=60, system=[{"type": "text", "text": "Be brief."}],
+                                               tools=[], messages=[{"role": "user", "content": "Say 'Online and ready.'"}])
+        print("   Jarvis says:", "".join(getattr(b, "text", "") for b in r.content if b.type == "text"))
     except Exception as e:
         print(f"   Key test failed: {e}\n   You can fix the key later in the .env file.")
 

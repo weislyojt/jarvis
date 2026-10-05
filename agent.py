@@ -62,8 +62,8 @@ DENY_RE = re.compile(r"^\s*(?:hey\s+)?(?:\w+[,!]?\s+)?(deny|no|nope|cancel|don'?
 class Jarvis:
     def __init__(self, client=None):
         if client is None:
-            import anthropic
-            client = anthropic.Anthropic(api_key=config.API_KEY, max_retries=3)
+            import brains
+            client = brains.make_brain()
         self.client = client
         self.lock = threading.Lock()
         name = config.ASSISTANT_NAME
@@ -163,6 +163,9 @@ class Jarvis:
                 if not results:
                     break
                 messages.append({"role": "user", "content": results})
+            for src in ctx.get("sources", []):  # from the free-brain web search tool
+                if src["url"] not in [s["url"] for s in sources]:
+                    sources.append(src)
             reply = "".join(b.text for b in final_blocks if getattr(b, "type", None) == "text").strip()
             if not reply:
                 reply = " ".join(t.strip() for t in all_text if t.strip()) or "Done."
@@ -177,11 +180,14 @@ def _friendly_error(e):
     name = type(e).__name__
     msg = str(e)
     if "authentication" in name.lower() or "401" in msg:
-        return "My API key was rejected. Please check ANTHROPIC_API_KEY in the .env file."
+        return "My brain's API key was rejected. Please check the key in your settings (Railway Variables or .env)."
     if "credit" in msg.lower() or "billing" in msg.lower():
         return "The API account is out of credits. Please top up in the Claude Console."
     if "rate" in name.lower() or "429" in msg:
+        if config.BRAIN != "claude":
+            return "I've hit my free brain's limit for now. Give me a minute, or add a backup brain key."
         return "I'm being rate limited. Give me a moment and try again."
     if "connection" in name.lower() or "timeout" in name.lower():
         return "I can't reach my brain right now. Is the PC online?"
+    print(f"Brain error: {name}: {msg[:500]}", flush=True)
     return f"Something went wrong on my side ({name}). Please try again."
