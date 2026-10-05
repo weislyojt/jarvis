@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#071423">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Jarvis</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:wdth,wght@75..100,300..600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body data-state="idle">
+
+<!-- Unlock -->
+<section id="login" class="screen" hidden>
+  <div class="login-card">
+    <svg class="mini-orb" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44"/><circle cx="50" cy="50" r="30"/><circle cx="50" cy="50" r="12" class="fill"/></svg>
+    <h1 id="login-title">Unlock Jarvis</h1>
+    <p class="muted">Enter the PIN you chose during setup.</p>
+    <form id="login-form">
+      <input id="pin" type="password" autocomplete="current-password" placeholder="PIN" aria-label="PIN" required>
+      <button type="submit" class="primary">Unlock</button>
+    </form>
+    <p id="login-error" class="error" role="alert"></p>
+  </div>
+</section>
+
+<!-- Main -->
+<section id="main" class="screen" hidden>
+  <header class="top">
+    <div class="who"><span class="dot" id="conn-dot"></span><span id="name">Jarvis</span></div>
+    <button class="icon-btn" id="open-settings" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+    </button>
+  </header>
+
+  <div class="presence" id="presence">
+    <svg class="orb" viewBox="0 0 200 200" aria-hidden="true">
+      <circle class="ring r1" cx="100" cy="100" r="92"/>
+      <circle class="ring r2" cx="100" cy="100" r="74"/>
+      <circle class="ring r3" cx="100" cy="100" r="58"/>
+      <circle class="core-glow" cx="100" cy="100" r="40"/>
+      <circle class="core" cx="100" cy="100" r="26"/>
+    </svg>
+    <p class="state-label" id="state-label" aria-live="polite">Standing by</p>
+    <p class="hint" id="hint">Tap the mic and talk, or type below.</p>
+  </div>
+
+  <div class="transcript" id="transcript" aria-live="polite"></div>
+
+  <form class="dock" id="composer">
+    <input id="input" autocomplete="off" placeholder="Ask or tell Jarvis anything" aria-label="Message">
+    <button type="button" class="mic" id="mic" aria-label="Talk">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+    </button>
+    <button type="submit" class="send" id="send" aria-label="Send">
+      <svg viewBox="0 0 24 24"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+    </button>
+  </form>
+</section>
+
+<!-- Settings sheet -->
+<div class="sheet-backdrop" id="sheet-backdrop" hidden></div>
+<aside class="sheet" id="sheet" hidden aria-label="Settings">
+  <div class="sheet-head">
+    <h2>Settings</h2>
+    <button class="icon-btn" id="close-settings" aria-label="Close settings">
+      <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="voice" aria-selected="true">Voice</button>
+    <button role="tab" data-tab="memory" aria-selected="false">Memory</button>
+    <button role="tab" data-tab="reminders" aria-selected="false">Reminders</button>
+    <button role="tab" data-tab="device" aria-selected="false">Device</button>
+  </nav>
+
+  <div class="tab" id="tab-voice">
+    <label class="row"><span>Speak replies out loud</span><input type="checkbox" id="set-voice"></label>
+    <label class="row"><span>Always listen for its name<small>Say "Jarvis, open Spotify". Works while this screen is open.</small></span><input type="checkbox" id="set-wake"></label>
+    <label class="field"><span>Language I speak</span>
+      <select id="set-lang">
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="en-PH">English (Philippines)</option>
+        <option value="fil-PH">Filipino</option>
+      </select></label>
+    <label class="field"><span>Jarvis's voice</span><select id="set-voicename"></select></label>
+    <label class="field"><span>Speaking speed <output id="rate-out">1.0</output></span>
+      <input type="range" id="set-rate" min="0.7" max="1.4" step="0.05"></label>
+    <button class="ghost" id="test-voice">Test voice</button>
+  </div>
+
+  <div class="tab" id="tab-memory" hidden>
+    <p class="muted">Everything Jarvis has learned about you. Remove anything that's wrong; tell Jarvis to fix or forget things anytime.</p>
+    <ul class="list" id="memory-list"></ul>
+  </div>
+
+  <div class="tab" id="tab-reminders" hidden>
+    <p class="muted">Ask "remind me to stretch at 3pm" to add one.</p>
+    <ul class="list" id="reminder-list"></ul>
+  </div>
+
+  <div class="tab" id="tab-device" hidden>
+    <button class="ghost" id="enable-notify">Get reminders on this device, even when Jarvis is closed</button>
+    <button class="ghost" id="test-notify">Send a test notification</button>
+    <button class="ghost" id="new-convo">Start a fresh conversation</button>
+    <button class="ghost danger" id="logout">Lock this device</button>
+    <p class="muted small" id="about"></p>
+  </div>
+</aside>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
